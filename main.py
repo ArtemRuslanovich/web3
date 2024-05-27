@@ -1,8 +1,13 @@
 from flask import Flask, render_template
 import requests
-from keys import ARBISCAN_API_KEY
 
 app = Flask(__name__)
+
+def read_api_key(filename='keys.txt'):
+    with open(filename, 'r') as file:
+        return file.read().strip()
+
+ARBISCAN_API_KEY = read_api_key()
 
 ETHERSCAN_API_URL = f'https://api.arbiscan.io/api?module=stats&action=ethprice&apikey={ARBISCAN_API_KEY}'
 
