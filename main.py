@@ -50,6 +50,15 @@ def balance():
         return jsonify({'address': address, 'balance': eth_balance}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+@app.route('/transaction', methods=['POST'])
+def transaction():
+    try:
+        tx_hash = request.form['tx_hash']
+        tx = web3.eth.get_transaction(tx_hash)
+        return jsonify({'transaction': tx}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
