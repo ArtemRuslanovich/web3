@@ -1,5 +1,6 @@
 import requests
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
+from web3 import Web3
 
 
 app = Flask(__name__)
@@ -9,6 +10,11 @@ def read_api_key(filename='keys.txt'):
         return file.read().strip()
 
 ARBISCAN_API_KEY = read_api_key()
+alchemy_api_key = 'JHIR3eEJvo1ttf9lJsy7f7V4gt5nbJao'
+
+# Подключалка к Эфириуму через Infura
+alchemy_url = f'https://eth-mainnet.alchemyapi.io/v2/{alchemy_api_key}'
+web3 = Web3(Web3.HTTPProvider(alchemy_url))
 
 # получение цены eth к usd
 def get_eth_price(ARBISCAN_API_KEY):
@@ -31,6 +37,17 @@ def price():
     try:
         price = get_eth_price(ARBISCAN_API_KEY)
         return jsonify({'Ethereum Price (USD)': price}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+
+@app.route('/balance', methods=['POST'])
+def balance():
+    try:
+        address = request.form['address']
+        balance = web3.eth.get_balance(address)
+        eth_balance = web3.fromWei(balance, 'ether')
+        return jsonify({'address': address, 'balance': eth_balance}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
