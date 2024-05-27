@@ -55,9 +55,9 @@ def balance():
     try:
         request_data = request.get_json()
         address = request_data['address']
-        wallet_address = Web3.to_checksum_address(address)
+        wallet_address = web3.to_checksum_address(address)
         balance = web3.eth.get_balance(wallet_address)
-        eth_balance = web3.fromWei(balance, 'ether')
+        eth_balance = web3.from_wei(balance, 'ether')
         return jsonify({'address': wallet_address, 'balance': eth_balance}), 200
     except ValueError as e:
         print('Invalid transaction hash:', e)
@@ -71,9 +71,26 @@ def balance():
 def transaction():
     try:
         request_data = request.get_json()
-        tx_hash = request_data['tx_hash']
-        tx = web3.eth.get_transaction(tx_hash)
-        return jsonify({'transaction': tx}), 200
+        if not request_data:
+            return jsonify({'error': 'Missing request data'}), 400
+        
+        tx_hash = request_data.get('tx_hash')
+        if not tx_hash:
+            return jsonify({'error': 'Missing transaction hash in request data'}), 400
+        
+        try:
+            tx = web3.eth.get_transaction(tx_hash)
+        except Exception as e:
+            print('Error fetching transaction from Web3:', e)
+            return jsonify({'error': 'Invalid transaction hash or error fetching transaction from Web3'}), 400
+        
+        tx_data = {
+            'tx_hash': tx.hash.hex(),  # образует в 16ричную строчку
+            'blockNumber': tx.blockNumber,
+            'value': tx.value,
+        }
+        return jsonify({'transaction': tx_data}), 200
+
     except ValueError as e:
         print('Invalid transaction hash:', e)
         return jsonify({'error': 'Invalid transaction hash'}), 400
