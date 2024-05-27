@@ -53,20 +53,25 @@ def price():
 # проверка баланса кошеля
 def balance():
     try:
-        address = request.form['address']
-        balance = web3.eth.get_balance(address)
+        request_data = request.get_json()
+        address = request_data['address']
+        wallet_address = Web3.to_checksum_address(address)
+        balance = web3.eth.get_balance(wallet_address)
         eth_balance = web3.fromWei(balance, 'ether')
-        return jsonify({'address': address, 'balance': eth_balance}), 200
+        return jsonify({'address': wallet_address, 'balance': eth_balance}), 200
     except ValueError as e:
+        print('Invalid transaction hash:', e)
         return jsonify({'error': 'Invalid Balance addres'}), 400
     except Exception as e:
+        print('Error fetching the transaction:', e)
         return jsonify({'error': str(e)}), 500
     
 @app.route('/transaction', methods=['POST'])
 # проверка хеша транзы
 def transaction():
     try:
-        tx_hash = request.form['tx_hash']
+        request_data = request.get_json()
+        tx_hash = request_data['tx_hash']
         tx = web3.eth.get_transaction(tx_hash)
         return jsonify({'transaction': tx}), 200
     except ValueError as e:
