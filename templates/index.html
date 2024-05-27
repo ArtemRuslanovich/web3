@@ -26,7 +26,7 @@
     <pre id="transaction-result"></pre>
 
     <script>
-        // Fetching the ETH price
+        // etc прайс
         fetch('/price')
             .then(response => response.json())
             .then(data => {
@@ -37,7 +37,7 @@
                 document.getElementById('eth-price').innerText = 'Error fetching price';
             });
 
-        // Fetching the balance
+        // проверка баланса кошеля
         document.getElementById('balance-form').addEventListener('submit', function(event) {
             event.preventDefault();
             const address = document.getElementById('address').value;
@@ -58,7 +58,7 @@
             });
         });
 
-        // Fetching the transaction
+        // проверка транзы
         document.getElementById('transaction-form').addEventListener('submit', function(event) {
             event.preventDefault();
             const txHash = document.getElementById('tx-hash').value;

@@ -12,9 +12,17 @@ def read_api_key(filename='keys.txt'):
 ARBISCAN_API_KEY = read_api_key()
 alchemy_api_key = 'JHIR3eEJvo1ttf9lJsy7f7V4gt5nbJao'
 
-# Подключалка к Эфириуму через Infura
+# Подключалка к Эфириуму через Alchemy
 alchemy_url = f'https://eth-mainnet.alchemyapi.io/v2/{alchemy_api_key}'
 web3 = Web3(Web3.HTTPProvider(alchemy_url))
+
+# проверка подключения
+def check_connection():
+    try:
+        web3 = Web3(Web3.HTTPProvider(alchemy_url))
+        print("Connected to Alchemy successfully!")
+    except Exception as e:
+        print("Failed to connect to Alchemy:", e)
 
 # получение цены eth к usd
 def get_eth_price(ARBISCAN_API_KEY):
@@ -42,23 +50,32 @@ def price():
     
 
 @app.route('/balance', methods=['POST'])
+# проверка баланса кошеля
 def balance():
     try:
         address = request.form['address']
         balance = web3.eth.get_balance(address)
         eth_balance = web3.fromWei(balance, 'ether')
         return jsonify({'address': address, 'balance': eth_balance}), 200
+    except ValueError as e:
+        return jsonify({'error': 'Invalid Balance addres'}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     
 @app.route('/transaction', methods=['POST'])
+# проверка хеша транзы
 def transaction():
     try:
         tx_hash = request.form['tx_hash']
         tx = web3.eth.get_transaction(tx_hash)
         return jsonify({'transaction': tx}), 200
+    except ValueError as e:
+        print('Invalid transaction hash:', e)
+        return jsonify({'error': 'Invalid transaction hash'}), 400
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        print('Error fetching the transaction:', e)
+        return jsonify({'error': 'Error fetching transaction'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
+    check_connection()
