@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ethereum Price Tracker</title>
+</head>
+<body>
+    <h1>Ethereum Price Tracker</h1>
+    <p>The current price of Ethereum is: <span id="eth-price">Loading...</span> USD</p>
+
+    <script>
+        fetch('/price')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('eth-price').innerText = data['Ethereum Price (USD)'];
+            })
+            .catch(error => {
+                console.error('Error fetching the Ethereum price:', error);
+                document.getElementById('eth-price').innerText = 'Error fetching price';
+            });
+    </script>
+</body>
+</html>
