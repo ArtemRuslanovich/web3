@@ -1,44 +1,9 @@
-import requests
 from flask import Flask, jsonify, render_template, request
+from utils import check_connection, get_eth_price, get_amount_out, swap_tokens, web3
+from config import WALLET_ADDRESS, PRIVATE_KEY, ARBISCAN_API_KEY
 from web3 import Web3
-from decimal import Decimal
-from dotenv import load_dotenv
-import os
-import json
-
 
 app = Flask(__name__)
-load_dotenv()
-
-
-ALCHEMY_API_KEY = os.getenv('alchemy_api_key')
-PRIVATE_KEY = os.getenv('PRIVATE_KEY')
-WALLET_ADDRESS = os.getenv('WALLET_ADDRESS')
-ARBISCAN_API_KEY = os.getenv('ARBISCAN_API_KEY')
-
-# Подключалка к Эфириуму через Alchemy
-alchemy_url = f'https://eth-mainnet.alchemyapi.io/v2/{ALCHEMY_API_KEY}'
-web3 = Web3(Web3.HTTPProvider(alchemy_url))
-
-# проверка подключения
-def check_connection():
-    try:
-        web3 = Web3(Web3.HTTPProvider(alchemy_url))
-        print("Connected to Alchemy successfully!")
-    except Exception as e:
-        print("Failed to connect to Alchemy:", e)
-
-# получение цены eth к usd
-def get_eth_price(ARBISCAN_API_KEY):
-    url = f"https://api.arbiscan.io/api"
-    params = {
-        'module': 'stats',
-        'action': 'ethprice',
-        'apikey': ARBISCAN_API_KEY
-    }
-    response = requests.get(url, params=params)
-    data = response.json()
-    return Decimal(data['result']['ethusd'])
 
 @app.route('/')
 def index():
@@ -112,38 +77,6 @@ def transaction():
         print('Error fetching the transaction:', e)
         return jsonify({'error': 'Error fetching transaction'}), 500
 
-
-with open('uniswap_v2_router_abi.json', 'r') as abi_file:
-    uniswap_router_abi = json.load(abi_file)
-
-uniswap_router_address = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
-
-# Создание объекта контракта
-uniswap_router = web3.eth.contract(address=uniswap_router_address, abi=uniswap_router_abi)
-
-# Функция свапа токенов
-def swap_tokens(amount_in, amount_out_min, token_in, token_out, wallet_address, private_key):
-    nonce = web3.eth.getTransactionCount(wallet_address)
-    deadline = web3.eth.getBlock('latest')['timestamp'] + 1000  # 1000 секунд от текущего времени
-
-    transaction = uniswap_router.functions.swapExactTokensForTokens(
-        web3.to_wei(amount_in, 'ether'),
-        web3.to_wei(amount_out_min, 'ether'),
-        [web3.toChecksumAddress(token_in), web3.toChecksumAddress(token_out)],
-        wallet_address,
-        deadline
-    ).buildTransaction({
-        'from': wallet_address,
-        'gas': 2000000,
-        'gasPrice': web3.toWei('5', 'gwei'),
-        'nonce': nonce,
-    })
-
-    signed_tx = web3.eth.account.signTransaction(transaction, private_key)
-    tx_hash = web3.eth.sendRawTransaction(signed_tx.rawTransaction)
-
-    return web3.toHex(tx_hash)
-
 # Маршрут для свапа токенов
 @app.route('/swap', methods=['POST'])
 def swap():
@@ -154,20 +87,15 @@ def swap():
         token_in = data.get('token_in')
         token_out = data.get('token_out')
         
-        wallet_address = os.getenv('WALLET_ADDRESS')
-        private_key = os.getenv('PRIVATE_KEY')
-        
         if not all([amount_in, amount_out_min, token_in, token_out]):
             return jsonify({'error': 'Missing parameters'}), 400
         
-        tx_hash = swap_tokens(amount_in, amount_out_min, token_in, token_out, wallet_address, private_key)
+        tx_hash = swap_tokens(amount_in, amount_out_min, token_in, token_out, WALLET_ADDRESS, PRIVATE_KEY)
         return jsonify({'transaction_hash': tx_hash}), 200
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
-
 if __name__ == '__main__':
-    app.run(debug=True)
     check_connection()
+    app.run(debug=True)
