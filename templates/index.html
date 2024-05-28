@@ -25,6 +25,18 @@
     </form>
     <pre id="transaction-result"></pre>
 
+    <h2>Swap Tokens</h2>
+    <form id="swap-form">
+        <label for="amount-in">Amount In:</label>
+        <input type="number" id="amount-in" name="amount_in" step="0.0001" required>
+        <label for="token-in">Token In:</label>
+        <input type="text" id="token-in" name="token_in" required>
+        <label for="token-out">Token Out:</label>
+        <input type="text" id="token-out" name="token_out" required>
+        <button type="submit">Get Expected Amount Out</button>
+    </form>
+    <p id="swap-result"></p>
+
     <script>
         // etc прайс
         fetch('/price')
@@ -76,6 +88,28 @@
             .catch(error => {
                 console.error('Error fetching the transaction:', error);
                 document.getElementById('transaction-result').innerText = 'Error fetching transaction';
+            });
+        });
+
+        document.getElementById('swap-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const amountIn = document.getElementById('amount-in').value;
+            const tokenIn = document.getElementById('token-in').value;
+            const tokenOut = document.getElementById('token-out').value;
+            fetch('/get_amount_out', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ amount_in: amountIn, token_in: tokenIn, token_out: tokenOut })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('swap-result').innerText = `Expected Amount Out: ${data.amount_out}`;
+            })
+            .catch(error => {
+                console.error('Error fetching the expected amount out:', error);
+                document.getElementById('swap-result').innerText = 'Error fetching expected amount out';
             });
         });
     </script>

@@ -34,6 +34,16 @@ uniswap_router_address = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
 # Создание объекта контракта
 uniswap_router = web3.eth.contract(address=uniswap_router_address, abi=uniswap_router_abi)
 
+# для определения, сколько токенов получится в результате свапа
+def get_amount_out(amount_in, token_in, token_out): # количество входных токенов, адрес входного токена, адрес выходного токена
+    amount_in_wei = web3.to_wei(amount_in, 'ether')
+    amounts_out = uniswap_router.functions.getAmountsOut( # возвращает массив выходных токенов по указанному пути
+        amount_in_wei,
+        [web3.toChecksumAddress(token_in), web3.toChecksumAddress(token_out)]
+    ).call()
+    amount_out_wei = amounts_out[-1] # последний элемент из массива amounts_out - количество выходных токенов в Wei.
+    return web3.from_wei(amount_out_wei, 'ether')
+
 # Функция свапа токенов
 def swap_tokens(amount_in, amount_out_min, token_in, token_out, wallet_address, private_key):
     nonce = web3.eth.getTransactionCount(wallet_address) # уникальное число для каждой транзакции, шоб повторно не срабатывало
@@ -51,6 +61,9 @@ def swap_tokens(amount_in, amount_out_min, token_in, token_out, wallet_address, 
         'gasPrice': web3.toWei('5', 'gwei'),
         'nonce': nonce,
     })
+
+    gas_estimate = web3.eth.estimateGas(transaction) # оценка количества газа, необходимого для выполнения транзакции.
+    transaction['gas'] = gas_estimate # обновление gas в buildTransaction
 
     signed_tx = web3.eth.account.signTransaction(transaction, private_key) # подписание транзы
     tx_hash = web3.eth.sendRawTransaction(signed_tx.rawTransaction) # отправка транзы, rawTrans - для формата, который может быть передан в сеть

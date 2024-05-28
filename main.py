@@ -96,6 +96,23 @@ def swap():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/get_amount_out', methods=['POST'])
+def get_amount_out_route():
+    try:
+        data = request.get_json()
+        amount_in = data.get('amount_in')
+        token_in = data.get('token_in')
+        token_out = data.get('token_out')
+        
+        if not all([amount_in, token_in, token_out]):
+            return jsonify({'error': 'Missing parameters'}), 400
+        
+        amount_out = get_amount_out(amount_in, token_in, token_out)
+        return jsonify({'amount_out': str(amount_out)}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     check_connection()
     app.run(debug=True)
