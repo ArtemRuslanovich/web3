@@ -2,9 +2,13 @@ import requests
 from flask import Flask, jsonify, render_template, request
 from web3 import Web3
 from decimal import Decimal
+from dotenv import load_dotenv
 import os
+import json
+
 
 app = Flask(__name__)
+load_dotenv()
 
 
 ALCHEMY_API_KEY = os.getenv('alchemy_api_key')
@@ -107,6 +111,62 @@ def transaction():
     except Exception as e:
         print('Error fetching the transaction:', e)
         return jsonify({'error': 'Error fetching transaction'}), 500
+
+
+with open('uniswap_v2_router_abi.json', 'r') as abi_file:
+    uniswap_router_abi = json.load(abi_file)
+
+uniswap_router_address = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
+
+# Создание объекта контракта
+uniswap_router = web3.eth.contract(address=uniswap_router_address, abi=uniswap_router_abi)
+
+# Функция свапа токенов
+def swap_tokens(amount_in, amount_out_min, token_in, token_out, wallet_address, private_key):
+    nonce = web3.eth.getTransactionCount(wallet_address)
+    deadline = web3.eth.getBlock('latest')['timestamp'] + 1000  # 1000 секунд от текущего времени
+
+    transaction = uniswap_router.functions.swapExactTokensForTokens(
+        web3.to_wei(amount_in, 'ether'),
+        web3.to_wei(amount_out_min, 'ether'),
+        [web3.toChecksumAddress(token_in), web3.toChecksumAddress(token_out)],
+        wallet_address,
+        deadline
+    ).buildTransaction({
+        'from': wallet_address,
+        'gas': 2000000,
+        'gasPrice': web3.toWei('5', 'gwei'),
+        'nonce': nonce,
+    })
+
+    signed_tx = web3.eth.account.signTransaction(transaction, private_key)
+    tx_hash = web3.eth.sendRawTransaction(signed_tx.rawTransaction)
+
+    return web3.toHex(tx_hash)
+
+# Маршрут для свапа токенов
+@app.route('/swap', methods=['POST'])
+def swap():
+    try:
+        data = request.get_json()
+        amount_in = data.get('amount_in')
+        amount_out_min = data.get('amount_out_min')
+        token_in = data.get('token_in')
+        token_out = data.get('token_out')
+        
+        wallet_address = os.getenv('WALLET_ADDRESS')
+        private_key = os.getenv('PRIVATE_KEY')
+        
+        if not all([amount_in, amount_out_min, token_in, token_out]):
+            return jsonify({'error': 'Missing parameters'}), 400
+        
+        tx_hash = swap_tokens(amount_in, amount_out_min, token_in, token_out, wallet_address, private_key)
+        return jsonify({'transaction_hash': tx_hash}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
