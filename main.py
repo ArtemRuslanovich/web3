@@ -1,19 +1,19 @@
 import requests
 from flask import Flask, jsonify, render_template, request
 from web3 import Web3
-
+from decimal import Decimal
+import os
 
 app = Flask(__name__)
 
-def read_api_key(filename='keys.txt'):
-    with open(filename, 'r') as file:
-        return file.read().strip()
 
-ARBISCAN_API_KEY = read_api_key()
-alchemy_api_key = 'JHIR3eEJvo1ttf9lJsy7f7V4gt5nbJao'
+ALCHEMY_API_KEY = os.getenv('alchemy_api_key')
+PRIVATE_KEY = os.getenv('PRIVATE_KEY')
+WALLET_ADDRESS = os.getenv('WALLET_ADDRESS')
+ARBISCAN_API_KEY = os.getenv('ARBISCAN_API_KEY')
 
 # Подключалка к Эфириуму через Alchemy
-alchemy_url = f'https://eth-mainnet.alchemyapi.io/v2/{alchemy_api_key}'
+alchemy_url = f'https://eth-mainnet.alchemyapi.io/v2/{ALCHEMY_API_KEY}'
 web3 = Web3(Web3.HTTPProvider(alchemy_url))
 
 # проверка подключения
@@ -34,7 +34,7 @@ def get_eth_price(ARBISCAN_API_KEY):
     }
     response = requests.get(url, params=params)
     data = response.json()
-    return float(data['result']['ethusd'])
+    return Decimal(data['result']['ethusd'])
 
 @app.route('/')
 def index():
@@ -84,11 +84,21 @@ def transaction():
             print('Error fetching transaction from Web3:', e)
             return jsonify({'error': 'Invalid transaction hash or error fetching transaction from Web3'}), 400
         
+        tx_value_eth = Web3.from_wei(tx.value, 'ether') # перевод из wei в ETH
+        eth_price_usd = get_eth_price(ARBISCAN_API_KEY) # call the function to get the current ETH price
+        tx_value_usd = tx_value_eth * eth_price_usd # умножается на текущий курс ETH/USD для получения значения в долларах
+        
         tx_data = {
-            'tx_hash': tx.hash.hex(),  # образует в 16ричную строчку
+            'tx_hash': tx.hash.hex(), # образует в 16ричную строчку
             'blockNumber': tx.blockNumber,
-            'value': tx.value,
+            'value': f"{tx_value_eth} ETH (${tx_value_usd:.2f})",
+            'from': tx['from'],
+            'to': tx['to']
         }
+
+        if tx.blockNumber is None:
+            return jsonify({'error': 'Транзакция еще не включена в блок'}), 400
+
         return jsonify({'transaction': tx_data}), 200
 
     except ValueError as e:
