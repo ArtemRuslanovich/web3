@@ -1,55 +1,80 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ethereum Price Tracker</title>
+    <title>Отслеживание цены Ethereum</title>
+    <style>
+        form {
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Ethereum Price Tracker</h1>
-    <p>The current price of Ethereum is: <span id="eth-price">Loading...</span> USD</p>
+    <h1>Отслеживание цены Ethereum</h1>
+    <p>Текущая цена Ethereum: <span id="eth-price">Загрузка...</span> USD</p>
 
-    <h2>Check Balance</h2>
+    <h2>Проверка баланса</h2>
     <form id="balance-form">
-        <label for="address">Ethereum Address:</label>
+        <label for="address">Ethereum адрес:</label>
         <input type="text" id="address" name="address" required>
-        <button type="submit">Get Balance</button>
+        <button type="submit">Получить баланс</button>
     </form>
     <p id="balance-result"></p>
 
-    <h2>Check Transaction</h2>
+    <h2>Проверка транзакции</h2>
     <form id="transaction-form">
-        <label for="tx-hash">Transaction Hash:</label>
+        <label for="tx-hash">Хэш транзакции:</label>
         <input type="text" id="tx-hash" name="tx_hash" required>
-        <button type="submit">Get Transaction</button>
+        <button type="submit">Получить транзакцию</button>
     </form>
     <pre id="transaction-result"></pre>
 
-    <h2>Swap Tokens</h2>
+    <h2>Обмен токенов</h2>
+    <form id="get-amount-out-form">
+        <label for="amount-in">Количество входящих токенов:</label>
+        <input type="number" id="amount-in" name="amount-in" step="0.0001" required>
+        <br>
+        <label for="token-in">Входящий токен:</label>
+        <input type="text" id="token-in" name="token-in" required>
+        <br>
+        <label for="token-out">Исходящий токен:</label>
+        <input type="text" id="token-out" name="token-out" required>
+        <br>
+        <button type="submit">Получить ожидаемое количество исходящих токенов</button>
+    </form>
+    <p id="amount-out-result"></p>
+
     <form id="swap-form">
-        <label for="amount-in">Amount In:</label>
-        <input type="number" id="amount-in" name="amount_in" step="0.0001" required>
-        <label for="token-in">Token In:</label>
-        <input type="text" id="token-in" name="token_in" required>
-        <label for="token-out">Token Out:</label>
-        <input type="text" id="token-out" name="token_out" required>
-        <button type="submit">Get Expected Amount Out</button>
+        <label for="amount-in-swap">Количество входящих токенов:</label>
+        <input type="number" id="amount-in-swap" name="amount_in" step="0.0001" required>
+        <br>
+        <label for="amount-out-min">Минимальное количество исходящих токенов:</label>
+        <input type="number" id="amount-out-min" name="amount_out_min" required>
+        <br>
+        <label for="token-in-swap">Входящий токен:</label>
+        <input type="text" id="token-in-swap" name="token_in" required>
+        <br>
+        <label for="token-out-swap">Исходящий токен:</label>
+        <input type="text" id="token-out-swap" name="token_out" required>
+        <br>
+        <button type="submit">Обменять токены</button>
     </form>
     <p id="swap-result"></p>
 
     <script>
-        // etc прайс
+        // Получение цены Ethereum
         fetch('/price')
             .then(response => response.json())
             .then(data => {
                 document.getElementById('eth-price').innerText = data['Ethereum Price (USD)'];
             })
             .catch(error => {
-                console.error('Error fetching the Ethereum price:', error);
-                document.getElementById('eth-price').innerText = 'Error fetching price';
+                console.error('Ошибка при получении цены Ethereum:', error);
+                document.getElementById('eth-price').innerText = 'Ошибка при получении цены';
             });
 
-        // проверка баланса кошеля
+        // Проверка баланса
         document.getElementById('balance-form').addEventListener('submit', function(event) {
             event.preventDefault();
             const address = document.getElementById('address').value;
@@ -62,15 +87,15 @@
             })
             .then(response => response.json())
             .then(data => {
-                document.getElementById('balance-result').innerText = `Balance: ${data.balance} ETH`;
+                document.getElementById('balance-result').innerText = `Баланс: ${data.balance} ETH`;
             })
             .catch(error => {
-                console.error('Error fetching the balance:', error);
-                document.getElementById('balance-result').innerText = 'Error fetching balance';
+                console.error('Ошибка при получении баланса:', error);
+                document.getElementById('balance-result').innerText = 'Ошибка при получении баланса';
             });
         });
 
-        // проверка транзы
+        // Проверка транзакции
         document.getElementById('transaction-form').addEventListener('submit', function(event) {
             event.preventDefault();
             const txHash = document.getElementById('tx-hash').value;
@@ -86,12 +111,13 @@
                 document.getElementById('transaction-result').innerText = JSON.stringify(data.transaction, null, 2);
             })
             .catch(error => {
-                console.error('Error fetching the transaction:', error);
-                document.getElementById('transaction-result').innerText = 'Error fetching transaction';
+                console.error('Ошибка при получении транзакции:', error);
+                document.getElementById('transaction-result').innerText = 'Ошибка при получении транзакции';
             });
         });
 
-        document.getElementById('swap-form').addEventListener('submit', function(event) {
+        // Получение ожидаемого количества исходящих токенов
+        document.getElementById('get-amount-out-form').addEventListener('submit', function(event) {
             event.preventDefault();
             const amountIn = document.getElementById('amount-in').value;
             const tokenIn = document.getElementById('token-in').value;
@@ -105,11 +131,35 @@
             })
             .then(response => response.json())
             .then(data => {
-                document.getElementById('swap-result').innerText = `Expected Amount Out: ${data.amount_out}`;
+                document.getElementById('amount-out-result').innerText = `Ожидаемое количество исходящих токенов: ${data.amount_out}`;
             })
             .catch(error => {
-                console.error('Error fetching the expected amount out:', error);
-                document.getElementById('swap-result').innerText = 'Error fetching expected amount out';
+                console.error('Ошибка при получении ожидаемого количества исходящих токенов:', error);
+                document.getElementById('amount-out-result').innerText = 'Ошибка при получении ожидаемого количества исходящих токенов';
+            });
+        });
+
+        // Обмен токенов
+        document.getElementById('swap-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const amountIn = document.getElementById('amount-in-swap').value;
+            const amountOutMin = document.getElementById('amount-out-min').value;
+            const tokenIn = document.getElementById('token-in-swap').value;
+            const tokenOut = document.getElementById('token-out-swap').value;
+            fetch('/swap', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ amount_in: amountIn, amount_out_min: amountOutMin, token_in: tokenIn, token_out: tokenOut })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('swap-result').innerText = `Хэш транзакции: ${data.transaction_hash}`;
+            })
+            .catch(error => {
+                console.error('Ошибка при выполнении обмена токенов:', error);
+                document.getElementById('swap-result').innerText = 'Ошибка при выполнении обмена токенов';
             });
         });
     </script>

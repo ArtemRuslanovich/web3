@@ -2,7 +2,7 @@ import requests
 from web3 import Web3
 from decimal import Decimal
 import json
-from config import ALCHEMY_API_KEY, ARBISCAN_API_KEY, uniswap_router_address, alchemy_url
+from config import ALCHEMY_API_KEY, ARBISCAN_API_KEY, alchemy_url
 
 web3 = Web3(Web3.HTTPProvider(alchemy_url))
 
