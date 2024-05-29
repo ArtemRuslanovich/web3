@@ -3,8 +3,11 @@ from web3 import Web3
 from decimal import Decimal
 import json
 from config import ALCHEMY_API_KEY, ARBISCAN_API_KEY, alchemy_url
+import logging
 
 web3 = Web3(Web3.HTTPProvider(alchemy_url))
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # проверка подключения
 def check_connection():
@@ -35,14 +38,20 @@ uniswap_router_address = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
 uniswap_router = web3.eth.contract(address=uniswap_router_address, abi=uniswap_router_abi)
 
 # для определения, сколько токенов получится в результате свапа
-def get_amount_out(amount_in, token_in, token_out): # количество входных токенов, адрес входного токена, адрес выходного токена
-    amount_in_wei = web3.to_wei(amount_in, 'ether')
-    amounts_out = uniswap_router.functions.getAmountsOut( # возвращает массив выходных токенов по указанному пути
-        amount_in_wei,
-        [web3.toChecksumAddress(token_in), web3.toChecksumAddress(token_out)]
-    ).call()
-    amount_out_wei = amounts_out[-1] # последний элемент из массива amounts_out - количество выходных токенов в Wei.
-    return web3.from_wei(amount_out_wei, 'ether')
+def get_amount_out(amount_in, token_in, token_out):
+    try:
+        amount_in_wei = web3.to_wei(amount_in, 'ether')
+        amounts_out = uniswap_router.functions.getAmountsOut(
+            amount_in_wei,
+            [web3.to_checksum_address(token_in), web3.to_checksum_address(token_out)]
+        ).call()
+        amount_out_wei = amounts_out[-1]
+        amount_out = web3.from_wei(amount_out_wei, 'ether')
+        logger.info(f"Получено количество выходных токенов: {amount_out}")
+        return amount_out
+    except Exception as e:
+        logger.error(f"Ошибка при получении количества выходных токенов: {e}")
+        raise
 
 # Функция свапа токенов
 def swap_tokens(amount_in, amount_out_min, token_in, token_out, wallet_address, private_key):

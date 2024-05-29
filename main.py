@@ -2,8 +2,14 @@ from flask import Flask, jsonify, render_template, request
 from utils import check_connection, get_eth_price, get_amount_out, swap_tokens, web3
 from config import WALLET_ADDRESS, PRIVATE_KEY, ARBISCAN_API_KEY
 from web3 import Web3
+import logging
+
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
 
 @app.route('/')
 def index():
@@ -103,15 +109,17 @@ def get_amount_out_route():
         amount_in = data.get('amount_in')
         token_in = data.get('token_in')
         token_out = data.get('token_out')
-        
+
         if not all([amount_in, token_in, token_out]):
-            return jsonify({'error': 'Missing parameters'}), 400
+            logger.error("Отсутствуют параметры в запросе")
+            return jsonify({'error': 'Отсутствуют параметры'}), 400
         
         amount_out = get_amount_out(amount_in, token_in, token_out)
         return jsonify({'amount_out': str(amount_out)}), 200
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.exception("Ошибка сервера")
+        return jsonify({'error': 'Внутренняя ошибка сервера'}), 500
 
 if __name__ == '__main__':
     check_connection()
